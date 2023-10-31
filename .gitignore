@@ -1,0 +1,11 @@
+__pycache__/
+.vscode/
+.idea/
+config/
+data/
+score/
+ensemble_residual/
+*result*/
+
+*.zip
+*out

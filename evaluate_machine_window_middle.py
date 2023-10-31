@@ -8,6 +8,10 @@ import os
 from main_model import CSDI_Physio
 from dataset import get_dataloader
 from utils import train,  window_trick_evaluate_middle
+import time
+
+start_time = time.time()
+print("start time = %s" % time.asctime(time.localtime(start_time)))
 
 parser = argparse.ArgumentParser(description="CSDI")
 parser.add_argument("--config", type=str, default="base.yaml")
@@ -20,19 +24,18 @@ parser.add_argument(
 parser.add_argument("--unconditional", action="store_true")
 parser.add_argument("--modelfolder", type=str, default="")
 parser.add_argument("--nsample", type=int, default=30)
-parser.add_argument("--ratio",type=float,default=0.7)
-parser.add_argument("--epochs",type=int,default=100)
-parser.add_argument("--diffusion_step",type=int,default=50)
-parser.add_argument("--machine_number",type=int,default=1)
-parser.add_argument("--file",type=str)
-parser.add_argument('--dataset',type=str,default="SMD")
+parser.add_argument("--ratio", type=float, default=0.7)
+parser.add_argument("--epochs", type=int, default=100)
+parser.add_argument("--diffusion_step", type=int, default=50)
+parser.add_argument("--machine_number", type=int, default=1)
+parser.add_argument("--file", type=str)
+parser.add_argument('--dataset', type=str, default="SMD")
 args = parser.parse_args()
 
 
 path = "config/" + args.config
 with open(path, "r") as f:
     config = yaml.safe_load(f)
-
 
 
 # 由于是分开进行预测，
@@ -48,14 +51,14 @@ try:
 except:
     pass
 
-for iteration in os.listdir("train_result"):
+for iteration in os.listdir("train_result_0"):
 
     try:
         os.mkdir(f"window_result/{iteration}")
     except:
         pass
 
-    for subset_name in os.listdir(f"train_result/{iteration}/"):
+    for subset_name in os.listdir(f"train_result_0/{iteration}/"):
 
         data_id = subset_name.split("_unconditional")[0]
 
@@ -71,12 +74,12 @@ for iteration in os.listdir("train_result"):
         test_data_path_list = []
         label_data_path_list = []
 
-
         data_file = f"{data_id}_train.pkl"
         train_data_path_list.append("data/Machine/" + data_file)
-        test_data_path_list.append("data/Machine/" + data_file.replace("_train.pkl","_test.pkl"))
-        label_data_path_list.append("data/Machine/" + data_file.replace("_train.pkl","_test_label.pkl"))
-
+        test_data_path_list.append(
+            "data/Machine/" + data_file.replace("_train.pkl", "_test.pkl"))
+        label_data_path_list.append(
+            "data/Machine/" + data_file.replace("_train.pkl", "_test_label.pkl"))
 
         # epoch = file.split("-")[0]
         train_data_path = train_data_path_list[0]
@@ -110,27 +113,29 @@ for iteration in os.listdir("train_result"):
         elif args.dataset == "SWaT":
             feature_dim = 45
 
-        model = CSDI_Physio(config, args.device, target_dim=feature_dim, ratio=args.ratio).to(args.device)
-        base_folder = f"train_result/{iteration}/{subset_name}"
+        model = CSDI_Physio(
+            config, args.device, target_dim=feature_dim, ratio=args.ratio).to(args.device)
+        base_folder = f"train_result_0/{iteration}/{subset_name}"
 
-        model.load_state_dict(torch.load(f"{base_folder}/best-model.pth",map_location=args.device))
+        model.load_state_dict(torch.load(
+            f"{base_folder}/best-model.pth", map_location=args.device))
 
         print("base folder is ")
         print(base_folder)
-
-        try:
-            os.mkdir(f"window_result/{iteration}/{diffusion_step}")
-        except:
-            pass
+        os.makedirs(
+            f"window_result/{iteration}/{diffusion_step}", exist_ok=True)
 
         target_folder = f"window_result/{iteration}/{diffusion_step}/{subset_name}"
 
-        try:
-            os.mkdir(target_folder)
-        except:
-            continue
+        os.makedirs(target_folder, exist_ok=True)
 
-        for temp_i in range(0,1):
+        for temp_i in range(0, 1):
             window_trick_evaluate_middle(model, train_error_loader_list, test_loader_list, nsample=1, scaler=1,
-                              foldername=target_folder,
-                              epoch_number=0, name=str(temp_i),split=split)
+                                         foldername=target_folder,
+                                         epoch_number=0, name=str(temp_i), split=split)
+
+    end_time = time.time()
+    print("start time = %s" % time.asctime(time.localtime(start_time)))
+    print(f"save_{iteration} end time = %s" %
+          time.asctime(time.localtime(end_time)))
+    print(f"save_{iteration}run time = %f s" % (end_time - start_time))

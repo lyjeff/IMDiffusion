@@ -25,12 +25,13 @@ def train(
     nsample_list = [
         1
     ]
+
     best_mse_score = 10000
     stop_counter = 0
     best_valid_loss = 1e10
     # for epoch_no in range(config["epochs"]):
     # !for test!
-    for epoch_no in range(0,500):
+    for epoch_no in range(0, 500):
 
         avg_loss = 0
         model.train()
@@ -57,7 +58,7 @@ def train(
             lr_scheduler.step()
 
         # if valid_loader is not None and (epoch_no + 1) % valid_epoch_interval == 0:
-        mse_score = validation(model, valid_loader ,nsample=1)
+        mse_score = validation(model, valid_loader, nsample=1)
         if mse_score < best_mse_score:
             stop_counter = 0
             best_mse_score = mse_score
@@ -72,9 +73,11 @@ def train(
         if stop_counter > 5:
             break
 
+
 def quantile_loss(target, forecast, q: float, eval_points) -> float:
     return 2 * torch.sum(
-        torch.abs((forecast - target) * eval_points * ((target <= forecast) * 1.0 - q))
+        torch.abs((forecast - target) * eval_points *
+                  ((target <= forecast) * 1.0 - q))
     )
 
 
@@ -92,7 +95,8 @@ def calc_quantile_CRPS(target, forecast, eval_points, mean_scaler, scaler):
     for i in range(len(quantiles)):
         q_pred = []
         for j in range(len(forecast)):
-            q_pred.append(torch.quantile(forecast[j : j + 1], quantiles[i], dim=1))
+            q_pred.append(torch.quantile(
+                forecast[j: j + 1], quantiles[i], dim=1))
         q_pred = torch.cat(q_pred, 0)
         q_loss = quantile_loss(target, q_pred, quantiles[i], eval_points)
         CRPS += q_loss / denom
@@ -106,7 +110,6 @@ def validation(model, valid_loader, nsample=20, scaler=1):
         mse_total = 0
         mae_total = 0
         evalpoints_total = 0
-
 
         with tqdm(valid_loader, mininterval=5.0, maxinterval=50.0) as it:
             for batch_no, test_batch in enumerate(it, start=1):
@@ -141,7 +144,9 @@ def validation(model, valid_loader, nsample=20, scaler=1):
     return np.sqrt(mse_total / evalpoints_total)
 
 # def evaluate(model, test_loader, nsample=100, scaler=1, mean_scaler=0, foldername=""):
-def evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="",epoch_number = "",name=""):
+
+
+def evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="", epoch_number="", name=""):
 
     with torch.no_grad():
         model.eval()
@@ -171,8 +176,10 @@ def evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scale
 
                 samples2 = samples2.permute(0, 1, 3, 2)  # (B,nsample,L,K)
                 samples_length = samples.shape[2]
-                samples[:,:,samples_length // 4 : samples_length //2, :] = samples2[:,:,samples_length // 4 : samples_length //2, :]
-                samples[:,:,samples_length - samples_length // 4:,:] = samples2[:,:,samples_length - samples_length // 4:,:]
+                samples[:, :, samples_length // 4: samples_length // 2,
+                        :] = samples2[:, :, samples_length // 4: samples_length // 2, :]
+                samples[:, :, samples_length - samples_length // 4:,
+                        :] = samples2[:, :, samples_length - samples_length // 4:, :]
 
                 samples_median = samples.median(dim=1)
                 all_target.append(c_target)
@@ -203,13 +210,18 @@ def evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scale
                 )
 
             with open(
-                foldername + f"/{epoch_number}-generated_outputs_nsample" + str(nsample) + f"{name}.pk", "wb"
+                foldername +
+                    f"/{epoch_number}-generated_outputs_nsample" +
+                str(nsample) + f"{name}.pk", "wb"
             ) as f:
                 all_target = torch.cat(all_target, dim=0).to("cpu")
                 all_evalpoint = torch.cat(all_evalpoint, dim=0).to("cpu")
-                all_observed_point = torch.cat(all_observed_point, dim=0).to("cpu")
-                all_observed_time = torch.cat(all_observed_time, dim=0).to("cpu")
-                all_generated_samples = torch.cat(all_generated_samples, dim=0).to("cpu")
+                all_observed_point = torch.cat(
+                    all_observed_point, dim=0).to("cpu")
+                all_observed_time = torch.cat(
+                    all_observed_time, dim=0).to("cpu")
+                all_generated_samples = torch.cat(
+                    all_generated_samples, dim=0).to("cpu")
 
                 pickle.dump(
                     [
@@ -229,7 +241,8 @@ def evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scale
             )
 
             with open(
-                foldername + f"/{epoch_number}-result_nsample" + str(nsample) + ".pk", "wb"
+                foldername + f"/{epoch_number}-result_nsample" +
+                    str(nsample) + ".pk", "wb"
             ) as f:
                 pickle.dump(
                     [
@@ -244,7 +257,7 @@ def evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scale
                 print("CRPS:", CRPS)
 
 
-def window_trick_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="",epoch_number = "",name="",split=4):
+def window_trick_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="", epoch_number="", name="", split=4):
 
     with torch.no_grad():
         model.eval()
@@ -262,7 +275,6 @@ def window_trick_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=
         with tqdm(test_loader1, mininterval=5.0, maxinterval=50.0) as it:
             for batch_no, test_batch in enumerate(it, start=1):
 
-
                 output = model.evaluate(test_batch, nsample)
                 samples, c_target, eval_points, observed_points, observed_time = output
                 samples = samples.permute(0, 1, 3, 2)  # (B,nsample,L,K)
@@ -275,26 +287,30 @@ def window_trick_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=
                 eval_points2 = output2[2]
 
                 samples2 = samples2.permute(0, 1, 3, 2)  # (B,nsample,L,K)
-                eval_points2 = eval_points2.permute(0,2,1)
+                eval_points2 = eval_points2.permute(0, 2, 1)
 
                 samples = samples.squeeze() * eval_points + samples2.squeeze() * eval_points2
 
                 samples_length = samples.shape[1]
 
                 if batch_no == 1:
-                    head = samples[0, 0 : samples_length // split, :]
+                    head = samples[0, 0: samples_length // split, :]
                     print("shape of head is")
                     print(head.shape)
-                    head_c_target = c_target[0, 0 : samples_length // split , :]
+                    head_c_target = c_target[0, 0: samples_length // split, :]
                     print("shape of head c target is")
                     print(head_c_target.shape)
-                    head_observed_points = observed_points[0, 0 : samples_length // split , :]
+                    head_observed_points = observed_points[0,
+                                                           0: samples_length // split, :]
                     print("shape of observed points is")
                     print(head_observed_points.shape)
 
-                samples = samples[:, samples_length // split: samples_length - samples_length // split, :]
-                c_target = c_target[:, samples_length // split: samples_length - samples_length // split, :]
-                observed_points = observed_points[:, samples_length // split: samples_length - samples_length // split, :]
+                samples = samples[:, samples_length //
+                                  split: samples_length - samples_length // split, :]
+                c_target = c_target[:, samples_length //
+                                    split: samples_length - samples_length // split, :]
+                observed_points = observed_points[:, samples_length //
+                                                  split: samples_length - samples_length // split, :]
 
                 eval_points = torch.ones_like(samples)
 
@@ -315,7 +331,6 @@ def window_trick_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=
                     torch.abs((samples - c_target))
                 ) * scaler
 
-
                 mse_total += mse_current.sum().item()
                 mae_total += mae_current.sum().item()
                 evalpoints_total += torch.ones_like(samples).sum().item()
@@ -334,13 +349,18 @@ def window_trick_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=
                 #     print(residual)
 
             with open(
-                foldername + f"/{epoch_number}-generated_outputs_nsample" + str(nsample) + f"{name}.pk", "wb"
+                foldername +
+                    f"/{epoch_number}-generated_outputs_nsample" +
+                str(nsample) + f"{name}.pk", "wb"
             ) as f:
                 all_target = torch.cat(all_target, dim=0).to("cpu")
                 all_evalpoint = torch.cat(all_evalpoint, dim=0).to("cpu")
-                all_observed_point = torch.cat(all_observed_point, dim=0).to("cpu")
-                all_observed_time = torch.cat(all_observed_time, dim=0).to("cpu")
-                all_generated_samples = torch.cat(all_generated_samples, dim=0).to("cpu")
+                all_observed_point = torch.cat(
+                    all_observed_point, dim=0).to("cpu")
+                all_observed_time = torch.cat(
+                    all_observed_time, dim=0).to("cpu")
+                all_generated_samples = torch.cat(
+                    all_generated_samples, dim=0).to("cpu")
                 head = head.to("cpu")
                 head_c_target = head_c_target.to("cpu")
                 head_observed_points = head_observed_points.to("cpu")
@@ -362,9 +382,7 @@ def window_trick_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=
                 )
 
 
-
-
-def middle_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="",epoch_number = "",name=""):
+def middle_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="", epoch_number="", name=""):
 
     with torch.no_grad():
         model.eval()
@@ -386,28 +404,33 @@ def middle_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mea
             for batch_no, test_batch in enumerate(it, start=1):
 
                 output = model.get_middle_evaluate(test_batch, nsample)
-                samples, c_target, eval_points, observed_points, observed_time,middle_results_samples = output
+                samples, c_target, eval_points, observed_points, observed_time, middle_results_samples = output
                 samples = samples.permute(0, 1, 3, 2)  # (B,nsample,L,K)
-                middle_results_samples = middle_results_samples.permute(0,1,3,2)
+                middle_results_samples = middle_results_samples.permute(
+                    0, 1, 3, 2)
                 c_target = c_target.permute(0, 2, 1)  # (B,L,K)
                 eval_points = eval_points.permute(0, 2, 1)
                 observed_points = observed_points.permute(0, 2, 1)
 
-
-                output2 = model.get_middle_evaluate(next(test_loader2), nsample)
+                output2 = model.get_middle_evaluate(
+                    next(test_loader2), nsample)
                 samples2 = output2[0]
                 middle_results_samples2 = output2[-1]
 
-
                 samples2 = samples2.permute(0, 1, 3, 2)  # (B,nsample,L,K)
-                middle_results_samples2 = middle_results_samples2.permute(0,1,3,2)
+                middle_results_samples2 = middle_results_samples2.permute(
+                    0, 1, 3, 2)
 
                 samples_length = samples.shape[2]
-                samples[:,:,samples_length // 4 : samples_length //2, :] = samples2[:,:,samples_length // 4 : samples_length //2, :]
-                samples[:,:,samples_length - samples_length // 4:,:] = samples2[:,:,samples_length - samples_length // 4:,:]
+                samples[:, :, samples_length // 4: samples_length // 2,
+                        :] = samples2[:, :, samples_length // 4: samples_length // 2, :]
+                samples[:, :, samples_length - samples_length // 4:,
+                        :] = samples2[:, :, samples_length - samples_length // 4:, :]
 
-                middle_results_samples[:,:,samples_length // 4 : samples_length //2, :] = middle_results_samples2[:,:,samples_length // 4 : samples_length //2, :]
-                middle_results_samples[:,:,samples_length - samples_length // 4:,:] = middle_results_samples2[:,:,samples_length - samples_length // 4:,:]
+                middle_results_samples[:, :, samples_length // 4: samples_length // 2,
+                                       :] = middle_results_samples2[:, :, samples_length // 4: samples_length // 2, :]
+                middle_results_samples[:, :, samples_length - samples_length // 4:,
+                                       :] = middle_results_samples2[:, :, samples_length - samples_length // 4:, :]
 
                 samples_median = samples.median(dim=1)
                 all_target.append(c_target)
@@ -423,10 +446,11 @@ def middle_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mea
                     torch.abs((samples_median.values - c_target))
                 ) * scaler
 
-                for i in range(0,100):
+                for i in range(0, 100):
                     middle_mse = (
-                    ((middle_results_samples[:,i,:,:].to("cpu") - c_target.to("cpu"))) ** 2
-                ) * (scaler ** 2)
+                        ((middle_results_samples[:, i, :, :].to(
+                            "cpu") - c_target.to("cpu"))) ** 2
+                    ) * (scaler ** 2)
                     middle_total_list[i] += middle_mse.sum()
                     print("middle mse is:")
                     print(middle_mse.sum())
@@ -445,15 +469,19 @@ def middle_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mea
                     refresh=True,
                 )
 
-
             with open(
-                foldername + f"/{epoch_number}-generated_outputs_nsample" + str(nsample) + f"{name}.pk", "wb"
+                foldername +
+                    f"/{epoch_number}-generated_outputs_nsample" +
+                str(nsample) + f"{name}.pk", "wb"
             ) as f:
                 all_target = torch.cat(all_target, dim=0).to("cpu")
                 all_evalpoint = torch.cat(all_evalpoint, dim=0).to("cpu")
-                all_observed_point = torch.cat(all_observed_point, dim=0).to("cpu")
-                all_observed_time = torch.cat(all_observed_time, dim=0).to("cpu")
-                all_generated_samples = torch.cat(all_generated_samples, dim=0).to("cpu")
+                all_observed_point = torch.cat(
+                    all_observed_point, dim=0).to("cpu")
+                all_observed_time = torch.cat(
+                    all_observed_time, dim=0).to("cpu")
+                all_generated_samples = torch.cat(
+                    all_generated_samples, dim=0).to("cpu")
 
                 pickle.dump(
                     [
@@ -473,7 +501,8 @@ def middle_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mea
             )
 
             with open(
-                foldername + f"/{epoch_number}-result_nsample" + str(nsample) + ".pk", "wb"
+                foldername + f"/{epoch_number}-result_nsample" +
+                    str(nsample) + ".pk", "wb"
             ) as f:
                 pickle.dump(
                     [
@@ -491,7 +520,8 @@ def middle_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mea
             for item in middle_total_list:
                 print(item)
 
-def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="",epoch_number = "",name="",stop_number=-1,split=4):
+
+def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="", epoch_number="", name="", stop_number=-1, split=4):
 
     with torch.no_grad():
         model.eval()
@@ -515,7 +545,7 @@ def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, 
                     break
 
                 output = model.get_middle_evaluate(test_batch, nsample)
-                samples, c_target, eval_points, observed_points, observed_time,middle_result = output
+                samples, c_target, eval_points, observed_points, observed_time, middle_result = output
 
                 print("shape of middle result is")
                 print(middle_result.shape)
@@ -526,9 +556,10 @@ def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, 
                 observed_points = observed_points.permute(0, 2, 1)
 
                 # 计算strategy2的结果
-                output2 = model.get_middle_evaluate(next(test_loader2), nsample)
+                output2 = model.get_middle_evaluate(
+                    next(test_loader2), nsample)
                 samples2 = output2[0]
-                eval_points2 = output2[2].permute(0,2,1)
+                eval_points2 = output2[2].permute(0, 2, 1)
 
                 middle_result2 = output2[-1]
                 middle_result2 = middle_result2.permute(0, 1, 3, 2)
@@ -541,35 +572,42 @@ def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, 
                 samples_length = samples.shape[1]
                 print(f"shape of samples after merging is {samples.shape}")
 
-                print(f"shape of middle result before merging is {middle_result.shape}")
+                print(
+                    f"shape of middle result before merging is {middle_result.shape}")
 
                 print(f"shape of eval points is {eval_points.shape}")
 
-                middle_result = middle_result.cpu() * eval_points.unsqueeze(1).cpu() + middle_result2.cpu() * eval_points2.unsqueeze(1).cpu()
+                middle_result = middle_result.cpu() * eval_points.unsqueeze(1).cpu() + \
+                    middle_result2.cpu() * eval_points2.unsqueeze(1).cpu()
 
                 print("shape of middle result after merging")
                 print(middle_result.shape)
                 # 保存头条带
                 if batch_no == 1:
-                    head = samples[0, 0 : samples_length // split, :]
+                    head = samples[0, 0: samples_length // split, :]
                     print("shape of head is")
                     print(head.shape)
-                    head_c_target = c_target[0, 0 : samples_length // split , :]
+                    head_c_target = c_target[0, 0: samples_length // split, :]
                     print("shape of head c target is")
                     print(head_c_target.shape)
-                    head_observed_points = observed_points[0, 0 : samples_length // split , :]
+                    head_observed_points = observed_points[0,
+                                                           0: samples_length // split, :]
                     print("shape of observed points is")
                     print(head_observed_points.shape)
-                    head_middle = middle_result[0, :, 0 : samples_length // split, :]
+                    head_middle = middle_result[0, :,
+                                                0: samples_length // split, :]
                     print("shape of head middle is")
-                    print(head_middle.shape) # -> [100,25,25]
+                    print(head_middle.shape)  # -> [100,25,25]
 
-                samples = samples[:, samples_length // split: samples_length - samples_length // split, :]
-                c_target = c_target[:, samples_length // split: samples_length - samples_length // split, :]
+                samples = samples[:, samples_length //
+                                  split: samples_length - samples_length // split, :]
+                c_target = c_target[:, samples_length //
+                                    split: samples_length - samples_length // split, :]
                 observed_points = observed_points[:, samples_length // split: samples_length - samples_length // split,
-                                  :]
+                                                  :]
 
-                middle_result = middle_result[:, :, samples_length // split: samples_length - samples_length // split, :]
+                middle_result = middle_result[:, :, samples_length //
+                                              split: samples_length - samples_length // split, :]
 
                 eval_points = torch.ones_like(samples)
                 samples_median = samples
@@ -592,7 +630,6 @@ def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, 
                     torch.abs((samples_median - c_target))
                 ) * scaler
 
-
                 mse_total += mse_current.sum().item()
                 mae_total += mae_current.sum().item()
                 evalpoints_total += torch.ones_like(samples).sum().item()
@@ -611,14 +648,18 @@ def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, 
                 #     print(residual)
 
             with open(
-                foldername + f"/{epoch_number}-generated_outputs_nsample" + str(nsample) + f"{name}_stop_number_{stop_number}.pk", "wb"
+                foldername + f"/{epoch_number}-generated_outputs_nsample" +
+                    str(nsample) + f"{name}_stop_number_{stop_number}.pk", "wb"
             ) as f:
                 all_target = torch.cat(all_target, dim=0).to("cpu")
                 all_evalpoint = torch.cat(all_evalpoint, dim=0).to("cpu")
-                all_observed_point = torch.cat(all_observed_point, dim=0).to("cpu")
-                all_observed_time = torch.cat(all_observed_time, dim=0).to("cpu")
-                all_generated_samples = torch.cat(all_generated_samples, dim=0).to("cpu")
-                all_middle = torch.cat(all_middle,dim=0).to("cpu")
+                all_observed_point = torch.cat(
+                    all_observed_point, dim=0).to("cpu")
+                all_observed_time = torch.cat(
+                    all_observed_time, dim=0).to("cpu")
+                all_generated_samples = torch.cat(
+                    all_generated_samples, dim=0).to("cpu")
+                all_middle = torch.cat(all_middle, dim=0).to("cpu")
                 head = head.to("cpu")
                 head_c_target = head_c_target.to("cpu")
                 head_observed_points = head_observed_points.to("cpu")
@@ -642,10 +683,7 @@ def window_trick_evaluate_middle(model, test_loader1, test_loader2, nsample=20, 
                 )
 
 
-
-
-
-def ddim_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="",epoch_number = "",name="",ddim_eta=0,ddim_steps=10):
+def ddim_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_scaler=0, foldername="", epoch_number="", name="", ddim_eta=0, ddim_steps=10):
 
     with torch.no_grad():
         model.eval()
@@ -664,23 +702,26 @@ def ddim_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_
             for batch_no, test_batch in enumerate(it, start=1):
 
                 # output = model.evaluate(test_batch, nsample)
-                output = model.ddim_evaluate(test_batch, nsample, ddim_eta=ddim_eta, ddim_steps=ddim_steps)
+                output = model.ddim_evaluate(
+                    test_batch, nsample, ddim_eta=ddim_eta, ddim_steps=ddim_steps)
                 samples, c_target, eval_points, observed_points, observed_time = output
                 samples = samples.permute(0, 1, 3, 2)  # (B,nsample,L,K)
                 c_target = c_target.permute(0, 2, 1)  # (B,L,K)
                 eval_points = eval_points.permute(0, 2, 1)
                 observed_points = observed_points.permute(0, 2, 1)
 
-
                 # output2 = model.evaluate(next(test_loader2), nsample)
-                output2 = model.ddim_evaluate(next(test_loader2), nsample, ddim_eta=ddim_eta, ddim_steps=ddim_steps)
+                output2 = model.ddim_evaluate(
+                    next(test_loader2), nsample, ddim_eta=ddim_eta, ddim_steps=ddim_steps)
 
                 samples2 = output2[0]
 
                 samples2 = samples2.permute(0, 1, 3, 2)  # (B,nsample,L,K)
                 samples_length = samples.shape[2]
-                samples[:,:,samples_length // 4 : samples_length //2, :] = samples2[:,:,samples_length // 4 : samples_length //2, :]
-                samples[:,:,samples_length - samples_length // 4:,:] = samples2[:,:,samples_length - samples_length // 4:,:]
+                samples[:, :, samples_length // 4: samples_length // 2,
+                        :] = samples2[:, :, samples_length // 4: samples_length // 2, :]
+                samples[:, :, samples_length - samples_length // 4:,
+                        :] = samples2[:, :, samples_length - samples_length // 4:, :]
 
                 samples_median = samples.median(dim=1)
                 all_target.append(c_target)
@@ -711,13 +752,18 @@ def ddim_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_
                 )
 
             with open(
-                foldername + f"/{epoch_number}-generated_outputs_nsample" + str(nsample) + f"{name}.pk", "wb"
+                foldername +
+                    f"/{epoch_number}-generated_outputs_nsample" +
+                str(nsample) + f"{name}.pk", "wb"
             ) as f:
                 all_target = torch.cat(all_target, dim=0).to("cpu")
                 all_evalpoint = torch.cat(all_evalpoint, dim=0).to("cpu")
-                all_observed_point = torch.cat(all_observed_point, dim=0).to("cpu")
-                all_observed_time = torch.cat(all_observed_time, dim=0).to("cpu")
-                all_generated_samples = torch.cat(all_generated_samples, dim=0).to("cpu")
+                all_observed_point = torch.cat(
+                    all_observed_point, dim=0).to("cpu")
+                all_observed_time = torch.cat(
+                    all_observed_time, dim=0).to("cpu")
+                all_generated_samples = torch.cat(
+                    all_generated_samples, dim=0).to("cpu")
 
                 pickle.dump(
                     [
@@ -737,7 +783,8 @@ def ddim_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_
             )
 
             with open(
-                foldername + f"/{epoch_number}-result_nsample" + str(nsample) + ".pk", "wb"
+                foldername + f"/{epoch_number}-result_nsample" +
+                    str(nsample) + ".pk", "wb"
             ) as f:
                 pickle.dump(
                     [
@@ -752,7 +799,7 @@ def ddim_evaluate(model, test_loader1, test_loader2, nsample=20, scaler=1, mean_
                 print("CRPS:", CRPS)
 
 
-def ensemble(model, test_loader, nsample=10, scaler=1, name = ""):
+def ensemble(model, test_loader, nsample=10, scaler=1, name=""):
 
     with torch.no_grad():
         model.eval()
@@ -764,7 +811,7 @@ def ensemble(model, test_loader, nsample=10, scaler=1, name = ""):
 
         }
 
-        for i in tqdm(range(0,nsample)):
+        for i in tqdm(range(0, nsample)):
             impute_sample_dict[i] = {
             }
             all_target = []
@@ -776,7 +823,8 @@ def ensemble(model, test_loader, nsample=10, scaler=1, name = ""):
                 for batch_no, test_batch in enumerate(it, start=1):
                     output = model.evaluate(test_batch, 1)
                     samples, c_target, eval_points, observed_points, observed_time = output
-                    samples = samples.permute(0, 1, 3, 2).squeeze()  # (B,nsample,L,K)
+                    samples = samples.permute(
+                        0, 1, 3, 2).squeeze()  # (B,nsample,L,K)
                     c_target = c_target.permute(0, 2, 1)  # (B,L,K)
                     eval_points = eval_points.permute(0, 2, 1)
                     observed_points = observed_points.permute(0, 2, 1)
@@ -811,17 +859,21 @@ def ensemble(model, test_loader, nsample=10, scaler=1, name = ""):
                 if 1:
                     all_target = torch.cat(all_target, dim=0).to("cpu")
                     all_evalpoint = torch.cat(all_evalpoint, dim=0).to("cpu")
-                    all_observed_point = torch.cat(all_observed_point, dim=0).to("cpu")
-                    all_observed_time = torch.cat(all_observed_time, dim=0).to("cpu")
-                    all_generated_samples = torch.cat(all_generated_samples, dim=0).to("cpu")
+                    all_observed_point = torch.cat(
+                        all_observed_point, dim=0).to("cpu")
+                    all_observed_time = torch.cat(
+                        all_observed_time, dim=0).to("cpu")
+                    all_generated_samples = torch.cat(
+                        all_generated_samples, dim=0).to("cpu")
                     impute_sample_dict[i]["all_target"] = all_target
                     impute_sample_dict[i]["all_evalpoint"] = all_evalpoint
                     impute_sample_dict[i]["all_observed_point"] = all_observed_point
                     impute_sample_dict[i]["all_observed_time"] = all_observed_time
                     impute_sample_dict[i]["all_generated_samples"] = all_generated_samples
-    torch.save(impute_sample_dict,name)
+    torch.save(impute_sample_dict, name)
 
-def ddim_ensemble(model, test_loader, nsample=10, scaler=1, name = "",ddim_eta=1,ddim_steps =10):
+
+def ddim_ensemble(model, test_loader, nsample=10, scaler=1, name="", ddim_eta=1, ddim_steps=10):
 
     with torch.no_grad():
         model.eval()
@@ -833,7 +885,7 @@ def ddim_ensemble(model, test_loader, nsample=10, scaler=1, name = "",ddim_eta=1
 
         }
 
-        for i in tqdm(range(0,nsample)):
+        for i in tqdm(range(0, nsample)):
             impute_sample_dict[i] = {
             }
             all_target = []
@@ -843,9 +895,11 @@ def ddim_ensemble(model, test_loader, nsample=10, scaler=1, name = "",ddim_eta=1
             all_generated_samples = []
             with tqdm(test_loader, mininterval=5.0, maxinterval=50.0) as it:
                 for batch_no, test_batch in enumerate(it, start=1):
-                    output = model.ddim_evaluate(test_batch, 1,ddim_eta=ddim_eta,ddim_steps = ddim_steps)
+                    output = model.ddim_evaluate(
+                        test_batch, 1, ddim_eta=ddim_eta, ddim_steps=ddim_steps)
                     samples, c_target, eval_points, observed_points, observed_time = output
-                    samples = samples.permute(0, 1, 3, 2).squeeze()  # (B,nsample,L,K)
+                    samples = samples.permute(
+                        0, 1, 3, 2).squeeze()  # (B,nsample,L,K)
                     c_target = c_target.permute(0, 2, 1)  # (B,L,K)
                     eval_points = eval_points.permute(0, 2, 1)
                     observed_points = observed_points.permute(0, 2, 1)
@@ -880,12 +934,15 @@ def ddim_ensemble(model, test_loader, nsample=10, scaler=1, name = "",ddim_eta=1
                 if 1:
                     all_target = torch.cat(all_target, dim=0).to("cpu")
                     all_evalpoint = torch.cat(all_evalpoint, dim=0).to("cpu")
-                    all_observed_point = torch.cat(all_observed_point, dim=0).to("cpu")
-                    all_observed_time = torch.cat(all_observed_time, dim=0).to("cpu")
-                    all_generated_samples = torch.cat(all_generated_samples, dim=0).to("cpu")
+                    all_observed_point = torch.cat(
+                        all_observed_point, dim=0).to("cpu")
+                    all_observed_time = torch.cat(
+                        all_observed_time, dim=0).to("cpu")
+                    all_generated_samples = torch.cat(
+                        all_generated_samples, dim=0).to("cpu")
                     impute_sample_dict[i]["all_target"] = all_target
                     impute_sample_dict[i]["all_evalpoint"] = all_evalpoint
                     impute_sample_dict[i]["all_observed_point"] = all_observed_point
                     impute_sample_dict[i]["all_observed_time"] = all_observed_time
                     impute_sample_dict[i]["all_generated_samples"] = all_generated_samples
-    torch.save(impute_sample_dict,name)
+    torch.save(impute_sample_dict, name)

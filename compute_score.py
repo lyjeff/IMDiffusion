@@ -81,7 +81,8 @@ def compute_f_p_r(prediction, labels):
 
 
 def compute_adjust_f_in_fix_threshold(residual, labels, threshold_proper):
-    threshold = residual.reshape(-1).topk(int(threshold_proper * len(residual))).values[-1].item()
+    threshold = residual.reshape(-1).topk(int(threshold_proper *
+                                              len(residual))).values[-1].item()
 
     true = torch.ones_like(residual)
     false = torch.zeros_like(residual)
@@ -89,7 +90,8 @@ def compute_adjust_f_in_fix_threshold(residual, labels, threshold_proper):
 
     adjust_prediction = prediction_adjust(origin_prediction.clone(), labels)
     adjust_f, adjust_p, adjust_r = compute_f_p_r(adjust_prediction, labels)
-    original_f, original_p, original_r = compute_f_p_r(origin_prediction, labels)
+    original_f, original_p, original_r = compute_f_p_r(
+        origin_prediction, labels)
     add_list = compute_add(origin_prediction, labels)
     add_value = sum(add_list) / len(add_list)
 
@@ -106,9 +108,10 @@ def compute_best_threshold_for_average_adjust_f(residual_list, labels):
         infor_list = []
         for residual in residual_list:
             infor_list.append(
-                compute_adjust_f_in_fix_threshold(residual, labels, threshold_proper)
+                compute_adjust_f_in_fix_threshold(
+                    residual, labels, threshold_proper)
             )
-            print(f"type of residual is {type(residual)}")
+            # print(f"type of residual is {type(residual)}")
         threshold_infor_dict[threshold_proper] = infor_list
 
         # print(infor_list)
@@ -153,7 +156,8 @@ def compute_residual(pk_file, labels, ground_truth, compute_sum, compute_abs):
     all_target = torch.cat([head_target, all_target], dim=0)
     print(f"shape of ground truth is {ground_truth.shape}")
     print(f"shape of all target is {all_target.shape}")
-    print(f"check equal is {torch.all(all_target == torch.Tensor(ground_truth)[:all_target.shape[0]] * 20)}")
+    print(
+        f"check equal is {torch.all(all_target == torch.Tensor(ground_truth)[:all_target.shape[0]] * 20)}")
 
     labels = torch.Tensor(labels)[:len(all_gen)]
 
@@ -173,6 +177,7 @@ def compute_residual(pk_file, labels, ground_truth, compute_sum, compute_abs):
 
 def compute_one_subset_one_strategy(dataset_name, subset_name, compute_sum, compute_abs):
     residual_list = []
+    labels = []
     for save_file in os.listdir(f"window_result"):
         if "save" in save_file:
             pass
@@ -194,7 +199,8 @@ def compute_one_subset_one_strategy(dataset_name, subset_name, compute_sum, comp
                 if ".pk" in pkl_path:
                     # 记得每次都要读取，否则它会按照地址进行修改
                     labels = pickle.load(
-                        open(f"data/Machine/{subset_name}_test_label.pkl", "rb")
+                        open(
+                            f"data/Machine/{subset_name}_test_label.pkl", "rb")
                     )
                     ground_truth = pickle.load(
                         open(f"data/Machine/{subset_name}_test.pkl", "rb")
@@ -219,13 +225,14 @@ def compute_one_subset_one_strategy(dataset_name, subset_name, compute_sum, comp
 
 
 if __name__ == "__main__":
+    import time
+
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="SMD")
     # parser.add_argument("--compute_sum", type=str, default="True")
     # parser.add_argument("--compute_abs", type=str, default="True")
-
 
     args = parser.parse_args()
     data_id = args.dataset_name
@@ -251,15 +258,13 @@ if __name__ == "__main__":
         args.compute_abs = True
         args.compute_sum = False
 
-
-        
     dataset_name = args.dataset_name
     if dataset_name == "SMD":
         subset_name_list = [f"machine-1-{i}" for i in range(1, 9)]
         subset_name_list += [f"machine-2-{i}" for i in range(1, 10)]
         subset_name_list += [f"machine-3-{i}" for i in range(1, 12)]
     elif dataset_name == "GCP":
-        subset_name_list = [f"service{i}" for i in range(0,30)]
+        subset_name_list = [f"service{i}" for i in range(0, 30)]
     else:
         subset_name_list = [dataset_name]
 
@@ -278,21 +283,33 @@ if __name__ == "__main__":
         args.compute_abs = False
 
     for subset_name in subset_name_list:
+        start_time = time.time()
+        print(f"{subset_name} start time = %s" %
+              time.asctime(time.localtime(start_time)))
+
         best_f, best_proper, best_infor, threshold_infor_dict = compute_one_subset_one_strategy(
             dataset_name, subset_name, args.compute_sum, args.compute_abs
         )
         json.dump(
             best_infor,
-            open(f"score/{dataset_name}/best_infor/{subset_name}_{args.compute_sum}_{args.compute_abs}.json", "w")
+            open(
+                f"score/{dataset_name}/best_infor/{subset_name}_{args.compute_sum}_{args.compute_abs}.json", "w")
         )
+
+        os.makedirs(f"score/{dataset_name}/infor_dict/", exist_ok=True)
 
         json.dump(
             threshold_infor_dict,
-            open(f"score/{dataset_name}/infor_dict/{subset_name}_{args.compute_sum}_{args.compute_abs}.json", "w")
+            open(
+                f"score/{dataset_name}/infor_dict/{subset_name}_{args.compute_sum}_{args.compute_abs}.json", "w")
         )
         total_infor_csv.writerow(
             [subset_name, args.compute_sum, args.compute_abs, best_f, best_proper]
         )
 
-
-
+        end_time = time.time()
+        print(f"{subset_name} start time = %s" %
+              time.asctime(time.localtime(start_time)))
+        print(f"{subset_name} end time = %s" %
+              time.asctime(time.localtime(end_time)))
+        print(f"{subset_name} run time = %f s" % (end_time - start_time))

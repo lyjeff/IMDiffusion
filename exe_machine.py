@@ -8,6 +8,10 @@ import os
 from main_model import CSDI_Physio
 from dataset import get_dataloader
 from utils import train, evaluate
+import time
+
+start_time = time.time()
+print("start time = %s" % time.asctime(time.localtime(start_time)))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", type=str, default="base.yaml")
@@ -17,12 +21,10 @@ parser.add_argument("--testmissingratio", type=float, default=0.1)
 
 parser.add_argument("--modelfolder", type=str, default="")
 
-parser.add_argument("--ratio",type=float,default=0.7)
-parser.add_argument("--epochs",type=int,default=100)
-parser.add_argument("--dataset",type=str,default="SMD")
+parser.add_argument("--ratio", type=float, default=0.7)
+parser.add_argument("--epochs", type=int, default=100)
+parser.add_argument("--dataset", type=str, default="SMD")
 args = parser.parse_args()
-
-
 
 
 train_data_path_list = []
@@ -30,30 +32,38 @@ test_data_path_list = []
 label_data_path_list = []
 
 if args.dataset == "SMD":
-    data_set_number = ["3-4",'3-5',"3-10","3-11","1-5","1-8","2-4"]
-    data_set_number += ["1-1","1-2","1-3","1-4","1-5","1-6","1-7","1-8"]
-    data_set_number += ["2-1","2-2","2-3","2-4","2-5","2-6","2-7","2-8","2-9"]
-    data_set_number += ["3-1","3-2","3-3","3-4","3-5","3-6","3-7","3-8","3-9","3-10","3-11"]
+    data_set_number = ["3-4", '3-5', "3-10", "3-11", "1-5", "1-8", "2-4"]
+    data_set_number += ["1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8"]
+    data_set_number += ["2-1", "2-2", "2-3",
+                        "2-4", "2-5", "2-6", "2-7", "2-8", "2-9"]
+    data_set_number += ["3-1", "3-2", "3-3", "3-4",
+                        "3-5", "3-6", "3-7", "3-8", "3-9", "3-10", "3-11"]
 
     for data_set_id in data_set_number:
-            file = f"machine-{data_set_id}_train.pkl"
-            train_data_path_list.append("data/Machine/" + file)
-            test_data_path_list.append("data/Machine/" + file.replace("_train.pkl","_test.pkl"))
-            label_data_path_list.append("data/Machine/" + file.replace("_train.pkl","_test_label.pkl"))
+        file = f"machine-{data_set_id}_train.pkl"
+        train_data_path_list.append("data/Machine/" + file)
+        test_data_path_list.append(
+            "data/Machine/" + file.replace("_train.pkl", "_test.pkl"))
+        label_data_path_list.append(
+            "data/Machine/" + file.replace("_train.pkl", "_test_label.pkl"))
 elif args.dataset == "GCP":
-    data_set_number = [f"service{i}" for i in range(0,30)]
+    data_set_number = [f"service{i}" for i in range(0, 30)]
     for data_set_id in data_set_number:
-            file = f"{data_set_id}_train.pkl"
-            train_data_path_list.append("data/Machine/" + file)
-            test_data_path_list.append("data/Machine/" + file.replace("_train.pkl","_test.pkl"))
-            label_data_path_list.append("data/Machine/" + file.replace("_train.pkl","_test_label.pkl"))
-else: # for dataset with only one subset
+        file = f"{data_set_id}_train.pkl"
+        train_data_path_list.append("data/Machine/" + file)
+        test_data_path_list.append(
+            "data/Machine/" + file.replace("_train.pkl", "_test.pkl"))
+        label_data_path_list.append(
+            "data/Machine/" + file.replace("_train.pkl", "_test_label.pkl"))
+else:  # for dataset with only one subset
     data_set_number = [args.dataset]
     for data_set_id in data_set_number:
         file = f"{data_set_id}_train.pkl"
         train_data_path_list.append("data/Machine/" + file)
-        test_data_path_list.append("data/Machine/" + file.replace("_train.pkl", "_test.pkl"))
-        label_data_path_list.append("data/Machine/" + file.replace("_train.pkl", "_test_label.pkl"))
+        test_data_path_list.append(
+            "data/Machine/" + file.replace("_train.pkl", "_test.pkl"))
+        label_data_path_list.append(
+            "data/Machine/" + file.replace("_train.pkl", "_test_label.pkl"))
 
 diffusion_step_list = [50]
 
@@ -62,14 +72,13 @@ unconditional_list = [True]
 split_list = [10]
 
 
-
 try:
     os.mkdir("train_result")
 except:
     pass
 
 
-for training_epoch in range(0,6):
+for training_epoch in range(0, 1):
     print(f"begin to train for training_epoch {training_epoch} ...")
     try:
         os.mkdir(f"train_result/save{training_epoch}")
@@ -78,7 +87,6 @@ for training_epoch in range(0,6):
     for diffusion_step in diffusion_step_list:
         for unconditional in unconditional_list:
             for split in split_list:
-
 
                 for i, train_data_path in enumerate(train_data_path_list):
                     path = "config/" + args.config
@@ -94,7 +102,7 @@ for training_epoch in range(0,6):
                         unconditional) + "_split:" + str(
                         split) + "_diffusion_step:" + str(diffusion_step) + "/"
                     print('model folder:', foldername)
-                    os.makedirs(foldername)
+                    os.makedirs(foldername, exist_ok=True)
                     with open(foldername + "config.json", "w") as f:
                         json.dump(config, f, indent=4)
 
@@ -115,7 +123,7 @@ for training_epoch in range(0,6):
 
                     if args.dataset == "SMD":
                         feature_dim = 38
-                    elif args.dataset == "SMAP" or args.datset == "PSM":
+                    elif args.dataset == "SMAP" or args.dataset == "PSM":
                         feature_dim = 25
                     elif args.dataset == "MSL":
                         feature_dim = 55
@@ -124,9 +132,11 @@ for training_epoch in range(0,6):
 
                     elif args.dataset == "GCP":
                         feature_dim = 19
+                    else:
+                        feature_dim = 19
 
-
-                    model = CSDI_Physio(config, args.device,target_dim=feature_dim,ratio = args.ratio).to(args.device)
+                    model = CSDI_Physio(
+                        config, args.device, target_dim=feature_dim, ratio=args.ratio).to(args.device)
 
                     train(
                         model,
@@ -138,3 +148,8 @@ for training_epoch in range(0,6):
                         test_loader2=test_loader2
                     )
 
+    end_time = time.time()
+    print("start time = %s" % time.asctime(time.localtime(start_time)))
+    print(f"save_{training_epoch} end time = %s" %
+          time.asctime(time.localtime(end_time)))
+    print(f"save_{training_epoch}run time = %f s" % (end_time - start_time))
