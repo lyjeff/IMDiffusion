@@ -47,18 +47,18 @@ label_data_path_list = []
 
 
 try:
-    os.mkdir("window_result")
+    os.mkdir(f"window_result/{args.dataset}")
 except:
     pass
 
-for iteration in os.listdir("train_result_0"):
+for iteration in os.listdir(f"train_result/{args.dataset}"):
 
     try:
-        os.mkdir(f"window_result/{iteration}")
+        os.mkdir(f"window_result/{args.dataset}/{iteration}")
     except:
         pass
 
-    for subset_name in os.listdir(f"train_result_0/{iteration}/"):
+    for subset_name in os.listdir(f"train_result/{args.dataset}/{iteration}/"):
 
         data_id = subset_name.split("_unconditional")[0]
 
@@ -115,7 +115,7 @@ for iteration in os.listdir("train_result_0"):
 
         model = CSDI_Physio(
             config, args.device, target_dim=feature_dim, ratio=args.ratio).to(args.device)
-        base_folder = f"train_result_0/{iteration}/{subset_name}"
+        base_folder = f"train_result/{args.dataset}/{iteration}/{subset_name}"
 
         model.load_state_dict(torch.load(
             f"{base_folder}/best-model.pth", map_location=args.device))
@@ -123,9 +123,9 @@ for iteration in os.listdir("train_result_0"):
         print("base folder is ")
         print(base_folder)
         os.makedirs(
-            f"window_result/{iteration}/{diffusion_step}", exist_ok=True)
+            f"window_result/{args.dataset}/{iteration}/{diffusion_step}", exist_ok=True)
 
-        target_folder = f"window_result/{iteration}/{diffusion_step}/{subset_name}"
+        target_folder = f"window_result/{args.dataset}/{iteration}/{diffusion_step}/{subset_name}"
 
         os.makedirs(target_folder, exist_ok=True)
 
@@ -138,4 +138,4 @@ for iteration in os.listdir("train_result_0"):
     print("start time = %s" % time.asctime(time.localtime(start_time)))
     print(f"save_{iteration} end time = %s" %
           time.asctime(time.localtime(end_time)))
-    print(f"save_{iteration}run time = %f s" % (end_time - start_time))
+    print(f"save_{iteration} run time = %f s" % (end_time - start_time))

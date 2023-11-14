@@ -178,23 +178,23 @@ def compute_residual(pk_file, labels, ground_truth, compute_sum, compute_abs):
 def compute_one_subset_one_strategy(dataset_name, subset_name, compute_sum, compute_abs):
     residual_list = []
     labels = []
-    for save_file in os.listdir(f"window_result"):
+    for save_file in os.listdir(f"window_result/{dataset_name}"):
         if "save" in save_file:
             pass
         else:
             continue
 
         try:
-            os.listdir(f"window_result/{save_file}/50")
+            os.listdir(f"window_result/{dataset_name}/{save_file}/50")
         except:
             continue
-        for subdata_name in os.listdir(f"window_result/{save_file}/50"):
+        for subdata_name in os.listdir(f"window_result/{dataset_name}/{save_file}/50"):
             if subset_name + "_" in subdata_name:
                 pass
             else:
                 continue
 
-            base_path = f"window_result/{save_file}/50/{subdata_name}"
+            base_path = f"window_result/{dataset_name}/{save_file}/50/{subdata_name}"
             for pkl_path in os.listdir(base_path):
                 if ".pk" in pkl_path:
                     # 记得每次都要读取，否则它会按照地址进行修改
@@ -228,6 +228,8 @@ if __name__ == "__main__":
     import time
 
     import argparse
+
+    total_start_time = time.time()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="SMD")
@@ -313,3 +315,10 @@ if __name__ == "__main__":
         print(f"{subset_name} end time = %s" %
               time.asctime(time.localtime(end_time)))
         print(f"{subset_name} run time = %f s" % (end_time - start_time))
+
+    end_time = time.time()
+    print(f"Total start time = %s" %
+          time.asctime(time.localtime(total_start_time)))
+    print(f"Total end time = %s" %
+          time.asctime(time.localtime(end_time)))
+    print(f"Total run time = %f s" % (end_time - total_start_time))

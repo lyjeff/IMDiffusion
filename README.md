@@ -39,7 +39,7 @@ After inference, if you want to compute score, there are two scripts for compute
 
 compute_score.py is used to calculate the score of each dataset at each threshold. For individual data such as SWaT, SMAP, MSL, and PSM that do not contain sub datasets, you do not need to run this code.
 
-If you want to compute score on SMD and GCP, firstly 
+If you want to compute score on SMD and GCP, firstly
 ```shell
 python compute_score.py --dataset_name SMD
 ```

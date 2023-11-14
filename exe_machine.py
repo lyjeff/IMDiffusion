@@ -73,7 +73,7 @@ split_list = [10]
 
 
 try:
-    os.mkdir("train_result")
+    os.mkdir(f"train_result/{args.dataset}")
 except:
     pass
 
@@ -81,7 +81,7 @@ except:
 for training_epoch in range(0, 1):
     print(f"begin to train for training_epoch {training_epoch} ...")
     try:
-        os.mkdir(f"train_result/save{training_epoch}")
+        os.mkdir(f"train_result/{args.dataset}/save{training_epoch}")
     except:
         pass
     for diffusion_step in diffusion_step_list:
@@ -98,7 +98,7 @@ for training_epoch in range(0, 1):
                     config["diffusion"]["num_steps"] = diffusion_step
                     print(json.dumps(config, indent=4))
 
-                    foldername = f"./train_result/save{training_epoch}/" + f"{train_data_path.replace('_train.pkl', '').replace('data/Machine/', '')}" + "_unconditional:" + str(
+                    foldername = f"./train_result/{args.dataset}/save{training_epoch}/" + f"{train_data_path.replace('_train.pkl', '').replace('data/Machine/', '')}" + "_unconditional:" + str(
                         unconditional) + "_split:" + str(
                         split) + "_diffusion_step:" + str(diffusion_step) + "/"
                     print('model folder:', foldername)
@@ -152,4 +152,4 @@ for training_epoch in range(0, 1):
     print("start time = %s" % time.asctime(time.localtime(start_time)))
     print(f"save_{training_epoch} end time = %s" %
           time.asctime(time.localtime(end_time)))
-    print(f"save_{training_epoch}run time = %f s" % (end_time - start_time))
+    print(f"save_{training_epoch} run time = %f s" % (end_time - start_time))
